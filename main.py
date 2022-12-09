@@ -11,11 +11,11 @@ df_vde_original = pd.read_csv('VDE.csv', index_col=0)
 df_xlv_original = pd.read_csv('XLV.csv', index_col=0)
 df_xme_original = pd.read_csv('XME.csv', index_col=0)
 df_risk_free_rate = pd.read_csv('DTB3.csv')
-df_risk_free_rate.index=pd.to_datetime(df_risk_free_rate['DATE'])
-df_risk_free_rate=df_risk_free_rate[['DTB3']]
-df_risk_free_rate.columns=['risk_free']
+df_risk_free_rate.index = pd.to_datetime(df_risk_free_rate['DATE'])
+df_risk_free_rate = df_risk_free_rate[['DTB3']]
+df_risk_free_rate.columns = ['risk_free']
 msk = df_risk_free_rate['risk_free'] != '.'
-df_risk_free_rate=df_risk_free_rate[msk]
+df_risk_free_rate = df_risk_free_rate[msk]
 df_risk_free_rate = df_risk_free_rate.astype(float)
 
 
@@ -67,8 +67,8 @@ bounds = []
 for i in range(mean_asset.shape[0]):
     bounds.append((-10, 10))
 
-SHres = sp.optimize.minimize(negSharpe, np.array([0, 0, 0, 1, 0]), args=(risk_free_rate, cov_asset, mean_asset)
-                           , constraints=cons, bounds=bounds)
+SHres = sp.optimize.minimize(negSharpe, np.array([0, 0, 0, 1, 0]), args=(risk_free_rate, cov_asset, mean_asset),
+                             constraints=cons, bounds=bounds)
 
 eredmenySH = SHres.x
 SharpeMax = -1*negSharpe(eredmenySH, risk_free_rate, cov_asset, mean_asset)
@@ -87,19 +87,34 @@ def calc_nasset_MDD(w, df, window):
     return -1*np.sum(w*MDD)
 
 
-MDDres = sp.optimize.minimize(calc_nasset_MDD, np.array([1, 0, 0, 0, 0]), args=(df_merge, len(df_merge.index))
-                           , constraints=cons, bounds=bounds_MDD)
+MDDres = sp.optimize.minimize(calc_nasset_MDD, np.array([1, 0, 0, 0, 0]), args=(df_merge, len(df_merge.index)),
+                              constraints=cons, bounds=bounds_MDD)
 eredmenymdd = MDDres.x
 minMDD = -1 * calc_nasset_MDD(eredmenymdd, df_merge, len(df_merge.index))
 
-Roll_Max = df_merge.rolling(len(df_merge.index), min_periods=1).max()
+days_in_year = 252
+years_roll = 5
+start = years_roll*days_in_year
+
+
+def t_drawdown_min(w, df, time, dist):
+    df_dist = df.iloc[time:time+dist-1]
+    Roll_Max_tmin = df_dist.rolling(len(df_dist), min_periods=1).max()
+    Daily_Drawdown_tmin = df_dist / Roll_Max_tmin - 1.0
+    Max_Daily_Drawdown_tmin = Daily_Drawdown_tmin.rolling(len(df_dist), min_periods=1).min()
+    MDD_tmin = Max_Daily_Drawdown_tmin.iloc[-1]
+    return -1 * np.sum(w * MDD_tmin)
+
+
+MDDrollres = []
+for days in range(4):
+    MDDrollres.append(sp.optimize.minimize(t_drawdown_min, np.array([1, 0, 0, 0, 0]), args=(df_merge, days, start),
+                                      constraints=cons, bounds=bounds_MDD).x)
+
+lélgyszilegyéljó = pd.DataFrame(MDDrollres)
+
+Roll_Max = df_merge.rolling(start, min_periods=1).max()
 Daily_Drawdown = df_merge / Roll_Max - 1.0
-Max_Daily_Drawdown = Daily_Drawdown.rolling(len(df_merge.index), min_periods=1).min()
-MDD = Max_Daily_Drawdown.iloc[-1]
-
-Roll_Max_roll = df_merge.rolling((5*252), min_periods=1).max()
-Daily_Drawdown_roll = df_merge / Roll_Max_roll - 1.0
-Max_Daily_Drawdown_roll = Daily_Drawdown_roll.rolling((5*252), min_periods=1).min()
-
-
+Max_Daily_Drawdown = Daily_Drawdown.rolling(start, min_periods=1).min()
 pass
+
