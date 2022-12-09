@@ -84,9 +84,12 @@ def calc_nasset_MDD(w, df, window):
     return -1*np.sum(w*MDD)
 
 
-window_t = 252
-MDDres = sp.optimize.minimize(calc_nasset_MDD, np.array([1, 0, 0, 0, 0]), args=(df_merge, window_t)
+MDDres = sp.optimize.minimize(calc_nasset_MDD, np.array([1, 0, 0, 0, 0]), args=(df_merge, len(df_merge.index))
                            , constraints=cons, bounds=bounds_MDD)
 eredmenymdd = MDDres.x
-minMDD = -1 * calc_nasset_MDD(eredmenymdd, df_merge, window_t)
+minMDD = -1 * calc_nasset_MDD(eredmenymdd, df_merge, len(df_merge.index))
+Roll_Max = df_merge.rolling(len(df_merge.index), min_periods=1).max()
+Daily_Drawdown = df_merge / Roll_Max - 1.0
+Max_Daily_Drawdown = Daily_Drawdown.rolling(len(df_merge.index), min_periods=1).min()
+MDD = Max_Daily_Drawdown.iloc[-1]
 pass
