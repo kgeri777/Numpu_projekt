@@ -64,7 +64,8 @@ bounds = []
 for i in range(mean_asset.shape[0]):
     bounds.append((-10, 10))
 # Sharpe-mutató = (Portfólió hozama – Kockázatmentes hozam)/ Portfólió szórása
-res = sp.optimize.minimize(negSharpe, np.array([0, 0, 0, 1, 0]), args=(risk_free_rate, cov_asset, mean_asset), constraints=cons, bounds=bounds)
+res = sp.optimize.minimize(negSharpe, np.array([0, 0, 0, 1, 0]), args=(risk_free_rate, cov_asset, mean_asset)
+                           , constraints=cons, bounds=bounds)
 
 eredmeny = res.x
 SharpeMax = -1*negSharpe(eredmeny, risk_free_rate, cov_asset, mean_asset)
