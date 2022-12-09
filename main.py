@@ -10,7 +10,7 @@ df_tlt_original = pd.read_csv('TLT.csv', index_col=0)
 df_vde_original = pd.read_csv('VDE.csv', index_col=0)
 df_xlv_original = pd.read_csv('XLV.csv', index_col=0)
 df_xme_original = pd.read_csv('XME.csv', index_col=0)
-df_risk_free_rate=pd.read_csv('DTB3.csv')
+df_risk_free_rate = pd.read_csv('DTB3.csv')
 df_risk_free_rate.index=pd.to_datetime(df_risk_free_rate['DATE'])
 df_risk_free_rate=df_risk_free_rate[['DTB3']]
 df_risk_free_rate.columns=['risk_free']
@@ -54,16 +54,19 @@ std_asset = return_asset.std() * np.sqrt(12)
 cov_asset = return_asset.cov() * 12
 corr_asset = return_asset.corr()
 
+# Sharpe-mutató = (Portfólió hozama – Kockázatmentes hozam)/ Portfólió szórása
+
 
 def negSharpe(w, riskfreerate, cov_matrix, mean_return):
     return -1 * ((calc_nasset_mean(w, mean_return)-riskfreerate)/calc_nasset_std(w, cov_matrix))
+
 
 cons = ({'type': 'eq', 'fun': lambda weight: np.sum(weight)-1})
 bounds = []
 
 for i in range(mean_asset.shape[0]):
     bounds.append((-10, 10))
-# Sharpe-mutató = (Portfólió hozama – Kockázatmentes hozam)/ Portfólió szórása
+
 SHres = sp.optimize.minimize(negSharpe, np.array([0, 0, 0, 1, 0]), args=(risk_free_rate, cov_asset, mean_asset)
                            , constraints=cons, bounds=bounds)
 
@@ -88,8 +91,15 @@ MDDres = sp.optimize.minimize(calc_nasset_MDD, np.array([1, 0, 0, 0, 0]), args=(
                            , constraints=cons, bounds=bounds_MDD)
 eredmenymdd = MDDres.x
 minMDD = -1 * calc_nasset_MDD(eredmenymdd, df_merge, len(df_merge.index))
+
 Roll_Max = df_merge.rolling(len(df_merge.index), min_periods=1).max()
 Daily_Drawdown = df_merge / Roll_Max - 1.0
 Max_Daily_Drawdown = Daily_Drawdown.rolling(len(df_merge.index), min_periods=1).min()
 MDD = Max_Daily_Drawdown.iloc[-1]
+
+Roll_Max_roll = df_merge.rolling((5*252), min_periods=1).max()
+Daily_Drawdown_roll = df_merge / Roll_Max_roll - 1.0
+Max_Daily_Drawdown_roll = Daily_Drawdown_roll.rolling((5*252), min_periods=1).min()
+
+
 pass
