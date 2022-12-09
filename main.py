@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import scipy as sp
 from functools import reduce
-
+import matplotlib.pyplot as plt
 
 # fájl beolvasás és tisztítás
 df_dba_original = pd.read_csv('DBA.csv', index_col=0)
@@ -36,7 +36,7 @@ filenames = [df_dba, df_tlt, df_vde, df_xlv, df_xme]
 df_merge = reduce(lambda left, right: pd.merge(left, right, on=['Date'], how='inner'), filenames)
 df_merge.index = pd.to_datetime(df_merge.index)
 df_minden = df_merge.join(df_risk_free_rate, how='inner')
-
+df_minden.iloc[:, -1] = df_minden.iloc[:, -1] /100
 
 def calc_nasset_mean(w, mean_return):
     return np.sum(w*mean_return)
@@ -46,8 +46,12 @@ def calc_nasset_std(w, cov_matrix):
     return np.sqrt(np.dot(np.dot(w, cov_matrix), w.transpose()))
 
 
+days_in_year = 252
+years_roll = 5
+start = years_roll*days_in_year
+
 # asset metrics
-risk_free_rate = df_minden.iloc[:, -1].mean()/100
+risk_free_rate = df_minden.iloc[:, -1].mean()
 return_asset = df_merge / df_merge.shift(1) - 1
 mean_asset = return_asset.mean() * 12
 std_asset = return_asset.std() * np.sqrt(12)
@@ -73,6 +77,22 @@ SHres = sp.optimize.minimize(negSharpe, np.array([0, 0, 0, 1, 0]), args=(risk_fr
 eredmenySH = SHres.x
 SharpeMax = -1*negSharpe(eredmenySH, risk_free_rate, cov_asset, mean_asset)
 
+def Sharpe_roll(w, df_minden, time, dist):
+    df_dist = return_asset.iloc[time:time+dist-1]
+    a = df_dist.mean()
+    szoras =a.std()
+    kock=df_minden.iloc[:, -1].mean()
+    return -1*((calc_nasset_mean(w, a)-kock)-np.sum(w*szoras))
+
+
+SH_roll = []
+for napok in range(len(df_merge)-2*start):
+    SH_roll.append(sp.optimize.minimize(Sharpe_roll, np.array([0, 0, 0, 1, 0]), args=(df_minden, napok, start),
+                             constraints=cons, bounds=bounds).x)
+SH_roll = pd.DataFrame(SH_roll)
+SH_roll.plot()
+plt.show()
+
 # új feladatrész
 bounds_MDD = []
 for i in range(mean_asset.shape[0]):
@@ -92,10 +112,6 @@ MDDres = sp.optimize.minimize(calc_nasset_MDD, np.array([1, 0, 0, 0, 0]), args=(
 eredmenymdd = MDDres.x
 minMDD = -1 * calc_nasset_MDD(eredmenymdd, df_merge, len(df_merge.index))
 
-days_in_year = 252
-years_roll = 5
-start = years_roll*days_in_year
-
 
 def t_drawdown_min(w, df, time, dist):
     df_dist = df.iloc[time:time+dist-1]
@@ -107,14 +123,13 @@ def t_drawdown_min(w, df, time, dist):
 
 
 MDDrollres = []
-for days in range(4):
+for days in range(len(df_merge)-(2*start)):
     MDDrollres.append(sp.optimize.minimize(t_drawdown_min, np.array([1, 0, 0, 0, 0]), args=(df_merge, days, start),
                                       constraints=cons, bounds=bounds_MDD).x)
 
-lélgyszilegyéljó = pd.DataFrame(MDDrollres)
+MDD_roll = pd.DataFrame(MDDrollres)
+MDD_roll.plot()
+plt.show()
 
-Roll_Max = df_merge.rolling(start, min_periods=1).max()
-Daily_Drawdown = df_merge / Roll_Max - 1.0
-Max_Daily_Drawdown = Daily_Drawdown.rolling(start, min_periods=1).min()
 pass
 
