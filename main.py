@@ -64,9 +64,29 @@ bounds = []
 for i in range(mean_asset.shape[0]):
     bounds.append((-10, 10))
 # Sharpe-mutató = (Portfólió hozama – Kockázatmentes hozam)/ Portfólió szórása
-res = sp.optimize.minimize(negSharpe, np.array([0, 0, 0, 1, 0]), args=(risk_free_rate, cov_asset, mean_asset)
+SHres = sp.optimize.minimize(negSharpe, np.array([0, 0, 0, 1, 0]), args=(risk_free_rate, cov_asset, mean_asset)
                            , constraints=cons, bounds=bounds)
 
-eredmeny = res.x
-SharpeMax = -1*negSharpe(eredmeny, risk_free_rate, cov_asset, mean_asset)
+eredmenySH = SHres.x
+SharpeMax = -1*negSharpe(eredmenySH, risk_free_rate, cov_asset, mean_asset)
+
+# új feladatrész
+bounds_MDD = []
+for i in range(mean_asset.shape[0]):
+    bounds_MDD.append((0, 1))
+
+
+def calc_nasset_MDD(w, df, window):
+    Roll_Max = df.rolling(window, min_periods=1).max()
+    Daily_Drawdown = df / Roll_Max - 1.0
+    Max_Daily_Drawdown = Daily_Drawdown.rolling(window, min_periods=1).min()
+    MDD = Max_Daily_Drawdown.iloc[-1]
+    return -1*np.sum(w*MDD)
+
+
+window_t = 252
+MDDres = sp.optimize.minimize(calc_nasset_MDD, np.array([1, 0, 0, 0, 0]), args=(df_merge, window_t)
+                           , constraints=cons, bounds=bounds_MDD)
+eredmenymdd = MDDres.x
+minMDD = -1 * calc_nasset_MDD(eredmenymdd, df_merge, window_t)
 pass
