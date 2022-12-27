@@ -130,6 +130,6 @@ for days in range(len(df_merge)-(2*start)):
 MDD_roll = pd.DataFrame(MDDrollres)
 MDD_roll.plot()
 plt.show()
-
+ print(1)
 pass
 
