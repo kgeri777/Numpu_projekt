@@ -10,7 +10,7 @@ df_tlt_original = pd.read_csv('TLT.csv', index_col=0)
 df_vde_original = pd.read_csv('VDE.csv', index_col=0)
 df_xlv_original = pd.read_csv('XLV.csv', index_col=0)
 df_xme_original = pd.read_csv('XME.csv', index_col=0)
-df_risk_free_rate = pd.read_csv('DTB3.csv')
+df_risk_free_rate = pd.read_csv('../Projekt_Numpu/DTB3.csv')
 df_risk_free_rate.index = pd.to_datetime(df_risk_free_rate['DATE'])
 df_risk_free_rate = df_risk_free_rate[['DTB3']]
 df_risk_free_rate.columns = ['risk_free']
